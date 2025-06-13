@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var ErrUsualEnd = errors.New("usual end")
+
 type Game struct {
 	T         int
 	RocketImg *ebiten.Image
@@ -41,16 +43,16 @@ func (g *Game) Update() error {
 	landCondition := g.Rocket.IsCollision(*g.Moon)
 	if landCondition == model.ColisionClash {
 		fmt.Println("CLASH!")
-		return errors.New("game end: clash")
+		return ErrUsualEnd
 	} else if landCondition == model.ColisionLand {
 		fmt.Println("LAND!")
-		return errors.New("game end: land")
+		return ErrUsualEnd
 	}
 
 	landConditionEarth := g.Rocket.IsCollision(*g.Earth)
 	if landConditionEarth == model.ColisionClash || landConditionEarth == model.ColisionLand {
-		fmt.Println("earth clash!")
-		return errors.New("game end: earth clash")
+		fmt.Println("EARTH CLASH!")
+		return ErrUsualEnd
 	}
 
 	return nil
@@ -92,30 +94,38 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		startEmulate()
+		for i := 0; i < 1000; i++ {
+			err := startEmulate()
+			if errors.Is(err, ErrUsualEnd) {
+				continue
+			} else if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
 	},
 }
 
-func startEmulate() {
-	ebiten.SetWindowTitle("Ebitengine 入門")
+func startEmulate() error {
+	ebiten.SetWindowTitle("Rocket GA")
 	ebiten.SetWindowSize(1000, 1000)
 
 	g := &Game{}
 
 	img1, _, err := ebitenutil.NewImageFromFile("rocket.png")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	g.RocketImg = img1
 	img2, _, err := ebitenutil.NewImageFromFile("earth.png")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	g.EarthImg = img2
 
 	img3, _, err := ebitenutil.NewImageFromFile("moon.png")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	g.MoonImg = img3
 
@@ -141,8 +151,9 @@ func startEmulate() {
 	}
 
 	if err := ebiten.RunGame(g); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
