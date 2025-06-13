@@ -18,7 +18,6 @@ type Vector struct {
 
 type ColisionCondition string
 
-var safeLandingSpeed float64 = 10
 var ColisionNone ColisionCondition = "COLISION_NONE"
 var ColisionLand ColisionCondition = "COLISION_LAND"
 var ColisionClash ColisionCondition = "COLISION_CLASH"

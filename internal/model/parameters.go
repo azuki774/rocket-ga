@@ -19,6 +19,9 @@ var InitMoonPosX float64 = 400
 var InitMoonPosY float64 = 400
 
 var EarthRadius float64 = 30
+var MoonRadius float64 = 10
+
+var safeLandingSpeed float64 = 1
 
 type ThrustCommand struct {
 	StartTime float64

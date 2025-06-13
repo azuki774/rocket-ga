@@ -29,16 +29,16 @@ func (g *Game) Update() error {
 		{
 			StartTime: 0,
 			Duration:  70,
-			Angle:     math.Pi / 2,
-			Power:     0.05,
+			Angle:     math.Pi / 4,
+			Power:     0.08,
 		},
 	}
 	nr := g.Rocket.EmulateNextBy2(float64(g.T), *g.Earth, *g.Moon, thrustcmds)
 	// 状態更新
 	g.Rocket = nr
-	fmt.Printf("t=%d, X=%f, Y=%f, vX=%f, vY=%f, m=%f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel, g.Rocket.Mass)
+	fmt.Printf("t=%d, X=%f, Y=%f, vX=%f, vY=%f, m=%f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel.Y, g.Rocket.Mass)
 
-	landCondition := g.Rocket.IsCollision(*g.Earth)
+	landCondition := g.Rocket.IsCollision(*g.Moon)
 	if landCondition == model.ColisionClash {
 		fmt.Println("CLASH!")
 		return errors.New("game end: clash")
@@ -46,6 +46,13 @@ func (g *Game) Update() error {
 		fmt.Println("LAND!")
 		return errors.New("game end: land")
 	}
+
+	landConditionEarth := g.Rocket.IsCollision(*g.Earth)
+	if landConditionEarth == model.ColisionClash || landConditionEarth == model.ColisionLand {
+		fmt.Println("earth clash!")
+		return errors.New("game end: earth clash")
+	}
+
 	return nil
 }
 
@@ -56,7 +63,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(g.RocketImg, op)
 
 	op = &ebiten.DrawImageOptions{}
-	// エミュレート座標 0, 0 = 画面表示 800, 500
+	// エミュレート座標 0, 0 = 画面表示 500, 500
 	op.GeoM.Translate(g.Earth.Pos.X+500, g.Earth.Pos.Y+500)
 	screen.DrawImage(g.EarthImg, op)
 
@@ -65,7 +72,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(g.Moon.Pos.X+500, g.Moon.Pos.Y+500)
 	screen.DrawImage(g.MoonImg, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("t=%d, X=%f, Y=%f, vX=%f, vY=%f, m=%f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel, g.Rocket.Mass))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("t=%d, X=%f, Y=%f, vX=%f, vY=%f, m=%f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel.Y, g.Rocket.Mass))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -127,9 +134,10 @@ func startEmulate() {
 	}
 
 	g.Moon = &model.Object{
-		Mass: model.MoonMass,
-		Pos:  model.Vector{X: model.InitMoonPosX, Y: model.InitMoonPosY},
-		Vel:  model.Vector{X: 0, Y: 0},
+		Mass:   model.MoonMass,
+		Pos:    model.Vector{X: model.InitMoonPosX, Y: model.InitMoonPosY},
+		Vel:    model.Vector{X: 0, Y: 0},
+		Radius: model.MoonRadius,
 	}
 
 	if err := ebiten.RunGame(g); err != nil {
