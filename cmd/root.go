@@ -94,14 +94,10 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		for i := 0; i < 1000; i++ {
-			err := startEmulate()
-			if errors.Is(err, ErrUsualEnd) {
-				continue
-			} else if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+		err := startEmulate()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
 		}
 	},
 }
