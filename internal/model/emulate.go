@@ -16,15 +16,49 @@ type Vector struct {
 	Y float64
 }
 
+type ColisionCondition string
+
+var safeLandingSpeed float64 = 10
+var ColisionNone ColisionCondition = "COLISION_NONE"
+var ColisionLand ColisionCondition = "COLISION_LAND"
+var ColisionClash ColisionCondition = "COLISION_CLASH"
+
+// o が m1 とぶつかっていない or 衝突 or 着陸かを判定する
+func (o *Object) IsCollision(m1 Object) ColisionCondition {
+	// 衝突している場合を判定
+	if CollisionObject(*o, m1) {
+		vabs := math.Sqrt(o.Vel.X*o.Vel.X + o.Vel.Y*o.Vel.Y)
+		if vabs <= safeLandingSpeed {
+			// 着陸
+			return ColisionLand
+		} else {
+			// 衝突
+			return ColisionClash
+		}
+	}
+
+	return ColisionNone
+}
+
 // 2質点からの万有引力を受けて、1秒後の位置を計算
 // 与えたオブジェクトは更新して、新たな座標を返す
-func (o *Object) EmulateNextBy2(m1 Object, m2 Object) *Object {
-	// 衝突している場合を判定
-	if CollisionObject(*o, m1) || CollisionObject(*o, m2) {
-		v := Vector{X: 0, Y: 0}
-		p := Vector{X: o.Pos.X, Y: o.Pos.Y}
-		no := Object{Mass: o.Mass, Pos: p, Vel: v}
-		return &no
+func (o *Object) EmulateNextBy2(t float64, m1 Object, m2 Object, thurstCmds []ThrustCommand) *Object {
+	// デフォルトの推力はゼロ
+	thrustForce := Vector{X: 0, Y: 0}
+	power := 0.0
+
+	// 現在時刻で実行すべき噴射コマンドを探す
+	for _, cmd := range thurstCmds {
+		// 噴射期間中か？
+		if t >= cmd.StartTime && t < cmd.StartTime+cmd.Duration {
+			// 燃料が残っているか？
+			if o.Mass > RocketDryMass { // o の質量が、空タン状態の o よりも大きければ燃料が残っている
+				power = cmd.Power
+				thrustForce.X = power * math.Cos(cmd.Angle)
+				thrustForce.Y = power * math.Sin(cmd.Angle)
+			}
+			break // 同時刻に複数のコマンドは実行しないと仮定
+		}
 	}
 
 	// 各天体からの引力を個別に計算
@@ -32,7 +66,7 @@ func (o *Object) EmulateNextBy2(m1 Object, m2 Object) *Object {
 	f2 := computeGravityForce(m2, *o) // m2 が o を引く力
 
 	// 力の合成
-	f := Vector{X: f1.X + f2.X, Y: f1.Y + f2.Y}
+	f := Vector{X: f1.X + f2.X + thrustForce.X, Y: f1.Y + f2.Y + thrustForce.Y}
 
 	// 加速度計算 a = F/m
 	a := Vector{X: f.X / o.Mass, Y: f.Y / o.Mass}
@@ -44,6 +78,14 @@ func (o *Object) EmulateNextBy2(m1 Object, m2 Object) *Object {
 	p := Vector{X: o.Pos.X + v.X, Y: o.Pos.Y + v.Y}
 
 	no := Object{Mass: o.Mass, Pos: p, Vel: v}
+	if power > 0 {
+		// もし燃料を噴射したなら、質量を減少させる
+		fuelConsumed := FuelConsumptionRate * power * 1.0
+		no.Mass -= fuelConsumed
+		if no.Mass < RocketFuelMass {
+			no.Mass = RocketFuelMass // ロケットの質量は空タンを下回らない
+		}
+	}
 	return &no
 }
 

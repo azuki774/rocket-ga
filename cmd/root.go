@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"os"
 	"rocket-ga/internal/model"
 
@@ -23,10 +25,27 @@ type Game struct {
 func (g *Game) Update() error {
 	g.T += 1
 	// 状態計算
-	nr := g.Rocket.EmulateNextBy2(*g.Earth, *g.Moon)
+	thrustcmds := []model.ThrustCommand{
+		{
+			StartTime: 0,
+			Duration:  70,
+			Angle:     math.Pi / 2,
+			Power:     0.05,
+		},
+	}
+	nr := g.Rocket.EmulateNextBy2(float64(g.T), *g.Earth, *g.Moon, thrustcmds)
 	// 状態更新
 	g.Rocket = nr
-	fmt.Printf("t = %d, X: %f, Y: %f, vX: %f, vY: %f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel.Y)
+	fmt.Printf("t=%d, X=%f, Y=%f, vX=%f, vY=%f, m=%f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel, g.Rocket.Mass)
+
+	landCondition := g.Rocket.IsCollision(*g.Earth)
+	if landCondition == model.ColisionClash {
+		fmt.Println("CLASH!")
+		return errors.New("game end: clash")
+	} else if landCondition == model.ColisionLand {
+		fmt.Println("LAND!")
+		return errors.New("game end: land")
+	}
 	return nil
 }
 
@@ -46,7 +65,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(g.Moon.Pos.X+500, g.Moon.Pos.Y+500)
 	screen.DrawImage(g.MoonImg, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("t = %d, X: %f, Y: %f, vX: %f, vY: %f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel.Y))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("t=%d, X=%f, Y=%f, vX=%f, vY=%f, m=%f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel, g.Rocket.Mass))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -104,7 +123,7 @@ func startEmulate() {
 		Mass:   model.EarthMass,
 		Pos:    model.Vector{X: model.InitEarthPosX, Y: model.InitEarthPosY},
 		Vel:    model.Vector{X: 0, Y: 0},
-		Radius: 10,
+		Radius: model.EarthRadius,
 	}
 
 	g.Moon = &model.Object{
