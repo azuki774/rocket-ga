@@ -11,7 +11,10 @@ import (
 
 type Game struct {
 	RocketImg  *ebiten.Image
-	RocketImgX int
+	EarthImg   *ebiten.Image
+	MoonImg    *ebiten.Image
+	RocketImgX float64
+	RocketImgY float64
 }
 
 func (g *Game) Update() error {
@@ -21,13 +24,22 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(g.RocketImgX), 0)
+	op.GeoM.Translate(g.RocketImgX, 0)
 	screen.DrawImage(g.RocketImg, op)
+
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0, 0)
+	screen.DrawImage(g.EarthImg, op)
+
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(1600-80, 1200-80)
+	screen.DrawImage(g.MoonImg, op)
+
 	ebitenutil.DebugPrint(screen, "Rocket GA")
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return outsideWidth / 2, outsideHeight / 2
+	return outsideWidth, outsideHeight
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -46,9 +58,22 @@ to quickly create a Cobra application.`,
 		// todo
 		fmt.Println("Pass")
 		ebiten.SetWindowTitle("Ebitengine 入門")
-		ebiten.SetWindowSize(1280, 960)
+		ebiten.SetWindowSize(1600, 1200)
+
 		g := &Game{}
-		img, _, err := ebitenutil.NewImageFromFile("rocket.png")
+
+		img, _, err := ebitenutil.NewImageFromFile("earth.png")
+		if err != nil {
+			panic(err)
+		}
+		g.EarthImg = img
+
+		img, _, err = ebitenutil.NewImageFromFile("moon.png")
+		if err != nil {
+			panic(err)
+		}
+		g.MoonImg = img
+		img, _, err = ebitenutil.NewImageFromFile("rocket.png")
 		if err != nil {
 			panic(err)
 		}
