@@ -11,6 +11,7 @@ import (
 )
 
 type Game struct {
+	T         int
 	RocketImg *ebiten.Image
 	EarthImg  *ebiten.Image
 	MoonImg   *ebiten.Image
@@ -20,32 +21,32 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	// 位置計算
-	x, y := g.Rocket.EmulateNextBy2(*g.Earth, *g.Moon)
-	// 場所更新
-	g.Rocket.Pos.X = x
-	g.Rocket.Pos.Y = y
-	fmt.Printf("X: %f, Y: %f\n", g.Rocket.Pos.X, g.Rocket.Pos.Y)
+	g.T += 1
+	// 状態計算
+	nr := g.Rocket.EmulateNextBy2(*g.Earth, *g.Moon)
+	// 状態更新
+	g.Rocket = nr
+	fmt.Printf("t = %d, X: %f, Y: %f, vX: %f, vY: %f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel.Y)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	// エミュレート座標 0, 0 = 画面表示 800, 600
+	// エミュレート座標 0, 0 = 画面表示 500, 500
 	op.GeoM.Translate(g.Rocket.Pos.X+500, g.Rocket.Pos.Y+500)
 	screen.DrawImage(g.RocketImg, op)
 
 	op = &ebiten.DrawImageOptions{}
-	// エミュレート座標 0, 0 = 画面表示 800, 600
+	// エミュレート座標 0, 0 = 画面表示 800, 500
 	op.GeoM.Translate(g.Earth.Pos.X+500, g.Earth.Pos.Y+500)
 	screen.DrawImage(g.EarthImg, op)
 
 	op = &ebiten.DrawImageOptions{}
-	// エミュレート座標 0, 0 = 画面表示 800, 600
+	// エミュレート座標 0, 0 = 画面表示 500, 500
 	op.GeoM.Translate(g.Moon.Pos.X+500, g.Moon.Pos.Y+500)
 	screen.DrawImage(g.MoonImg, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("X: %f, Y: %f", g.Rocket.Pos.X, g.Rocket.Pos.Y))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("t = %d, X: %f, Y: %f, vX: %f, vY: %f\n", g.T, g.Rocket.Pos.X, g.Rocket.Pos.Y, g.Rocket.Vel.X, g.Rocket.Vel.Y))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -100,9 +101,10 @@ func startEmulate() {
 	}
 
 	g.Earth = &model.Object{
-		Mass: model.EarthMass,
-		Pos:  model.Vector{X: model.InitEarthPosX, Y: model.InitEarthPosY},
-		Vel:  model.Vector{X: 0, Y: 0},
+		Mass:   model.EarthMass,
+		Pos:    model.Vector{X: model.InitEarthPosX, Y: model.InitEarthPosY},
+		Vel:    model.Vector{X: 0, Y: 0},
+		Radius: 10,
 	}
 
 	g.Moon = &model.Object{

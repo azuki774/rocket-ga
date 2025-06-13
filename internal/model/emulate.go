@@ -5,9 +5,10 @@ import (
 )
 
 type Object struct {
-	Mass float64
-	Pos  Vector // 位置
-	Vel  Vector // 速度
+	Mass   float64
+	Pos    Vector  // 位置
+	Vel    Vector  // 速度
+	Radius float64 // 半径
 }
 
 type Vector struct {
@@ -15,14 +16,17 @@ type Vector struct {
 	Y float64
 }
 
-func NewObject(M float64, X float64, Y float64) *Object {
-	v := Vector{X: X, Y: Y}
-	return &Object{Mass: M, Pos: v}
-}
-
 // 2質点からの万有引力を受けて、1秒後の位置を計算
-// 与えたオブジェクトは更新せず、新たな座標を返す
-func (o *Object) EmulateNextBy2(m1 Object, m2 Object) (x float64, y float64) {
+// 与えたオブジェクトは更新して、新たな座標を返す
+func (o *Object) EmulateNextBy2(m1 Object, m2 Object) *Object {
+	// 衝突している場合を判定
+	if CollisionObject(*o, m1) || CollisionObject(*o, m2) {
+		v := Vector{X: 0, Y: 0}
+		p := Vector{X: o.Pos.X, Y: o.Pos.Y}
+		no := Object{Mass: o.Mass, Pos: p, Vel: v}
+		return &no
+	}
+
 	// 各天体からの引力を個別に計算
 	f1 := computeGravityForce(m1, *o) // m1 が o を引く力
 	f2 := computeGravityForce(m2, *o) // m2 が o を引く力
@@ -38,7 +42,19 @@ func (o *Object) EmulateNextBy2(m1 Object, m2 Object) (x float64, y float64) {
 
 	// 1 秒後の「位置」を更新する p = p + v * 1.0
 	p := Vector{X: o.Pos.X + v.X, Y: o.Pos.Y + v.Y}
-	return p.X, p.Y
+
+	no := Object{Mass: o.Mass, Pos: p, Vel: v}
+	return &no
+}
+
+func CollisionObject(o1 Object, o2 Object) bool {
+	dVec := Vector{X: o2.Pos.X - o1.Pos.X, Y: o2.Pos.Y - o1.Pos.Y}
+	d := math.Sqrt(dVec.X*dVec.X + dVec.Y*dVec.Y)
+	if d <= o1.Radius+o2.Radius {
+		// 衝突
+		return true
+	}
+	return false
 }
 
 // o1 が o2 を引く力を計算する
