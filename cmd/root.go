@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"rocket-ga/internal/model"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -10,32 +11,41 @@ import (
 )
 
 type Game struct {
-	RocketImg  *ebiten.Image
-	EarthImg   *ebiten.Image
-	MoonImg    *ebiten.Image
-	RocketImgX float64
-	RocketImgY float64
+	RocketImg *ebiten.Image
+	EarthImg  *ebiten.Image
+	MoonImg   *ebiten.Image
+	Rocket    *model.Object
+	Earth     *model.Object
+	Moon      *model.Object
 }
 
 func (g *Game) Update() error {
-	g.RocketImgX += 1
+	// 位置計算
+	x, y := g.Rocket.EmulateNextBy2(*g.Earth, *g.Moon)
+	// 場所更新
+	g.Rocket.Pos.X = x
+	g.Rocket.Pos.Y = y
+	fmt.Printf("X: %f, Y: %f\n", g.Rocket.Pos.X, g.Rocket.Pos.Y)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(g.RocketImgX, 0)
+	// エミュレート座標 0, 0 = 画面表示 800, 600
+	op.GeoM.Translate(g.Rocket.Pos.X+500, g.Rocket.Pos.Y+500)
 	screen.DrawImage(g.RocketImg, op)
 
 	op = &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, 0)
+	// エミュレート座標 0, 0 = 画面表示 800, 600
+	op.GeoM.Translate(g.Earth.Pos.X+500, g.Earth.Pos.Y+500)
 	screen.DrawImage(g.EarthImg, op)
 
 	op = &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(1600-80, 1200-80)
+	// エミュレート座標 0, 0 = 画面表示 800, 600
+	op.GeoM.Translate(g.Moon.Pos.X+500, g.Moon.Pos.Y+500)
 	screen.DrawImage(g.MoonImg, op)
 
-	ebitenutil.DebugPrint(screen, "Rocket GA")
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("X: %f, Y: %f", g.Rocket.Pos.X, g.Rocket.Pos.Y))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -55,34 +65,55 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		// todo
-		fmt.Println("Pass")
-		ebiten.SetWindowTitle("Ebitengine 入門")
-		ebiten.SetWindowSize(1600, 1200)
-
-		g := &Game{}
-
-		img, _, err := ebitenutil.NewImageFromFile("earth.png")
-		if err != nil {
-			panic(err)
-		}
-		g.EarthImg = img
-
-		img, _, err = ebitenutil.NewImageFromFile("moon.png")
-		if err != nil {
-			panic(err)
-		}
-		g.MoonImg = img
-		img, _, err = ebitenutil.NewImageFromFile("rocket.png")
-		if err != nil {
-			panic(err)
-		}
-		g.RocketImg = img
-
-		if err := ebiten.RunGame(g); err != nil {
-			panic(err)
-		}
+		startEmulate()
 	},
+}
+
+func startEmulate() {
+	ebiten.SetWindowTitle("Ebitengine 入門")
+	ebiten.SetWindowSize(1000, 1000)
+
+	g := &Game{}
+
+	img1, _, err := ebitenutil.NewImageFromFile("rocket.png")
+	if err != nil {
+		panic(err)
+	}
+	g.RocketImg = img1
+	img2, _, err := ebitenutil.NewImageFromFile("earth.png")
+	if err != nil {
+		panic(err)
+	}
+	g.EarthImg = img2
+
+	img3, _, err := ebitenutil.NewImageFromFile("moon.png")
+	if err != nil {
+		panic(err)
+	}
+	g.MoonImg = img3
+
+	// 初期位置
+	g.Rocket = &model.Object{
+		Mass: model.RocketMass,
+		Pos:  model.Vector{X: model.InitRocketPosX, Y: model.InitRocketPosY},
+		Vel:  model.Vector{X: model.InitRocketVelX, Y: model.InitRocketVelY},
+	}
+
+	g.Earth = &model.Object{
+		Mass: model.EarthMass,
+		Pos:  model.Vector{X: model.InitEarthPosX, Y: model.InitEarthPosY},
+		Vel:  model.Vector{X: 0, Y: 0},
+	}
+
+	g.Moon = &model.Object{
+		Mass: model.MoonMass,
+		Pos:  model.Vector{X: model.InitMoonPosX, Y: model.InitMoonPosY},
+		Vel:  model.Vector{X: 0, Y: 0},
+	}
+
+	if err := ebiten.RunGame(g); err != nil {
+		panic(err)
+	}
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

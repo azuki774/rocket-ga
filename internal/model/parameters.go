@@ -5,11 +5,12 @@ var EarthMass float64 = 10000
 var MoonMass float64 = 123
 var RocketMass float64 = 1
 
-type Vector struct {
-	X float64
-	Y float64
-}
+var InitRocketPosX float64 = -400
+var InitRocketPosY float64 = -400
+var InitRocketVelX float64 = -1.5
+var InitRocketVelY float64 = -1.5
 
-func NewVector(X float64, Y float64) *Vector {
-	return &Vector{X: X, Y: Y}
-}
+var InitEarthPosX float64 = 0
+var InitEarthPosY float64 = 0
+var InitMoonPosX float64 = 400
+var InitMoonPosY float64 = 250
